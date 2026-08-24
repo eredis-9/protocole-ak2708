@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { CSSProperties, FormEvent, useEffect, useRef, useState } from "react";
 
 type Language = "fr" | "en";
 type Phase = "cover" | "question" | "interface" | "ending";
@@ -169,6 +169,8 @@ export default function Home() {
   const humGain = useRef<GainNode | null>(null);
   const c = introCopy[lang];
   const fr = lang === "fr";
+  const assetBase = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  const heroImage = `${assetBase}/artyom-hero.png`;
 
   useEffect(() => {
     try { const raw = localStorage.getItem("ak2708-protocol-v1"); if (raw) setGame({ ...freshGame(), ...JSON.parse(raw) }); } catch { /* corrupted saves are ignored */ }
@@ -318,11 +320,14 @@ export default function Home() {
   const renderSection = () => ({ identity: renderIdentity, mission: renderMission, camp: renderCamp, neutral: renderNeutral, simulation: renderSimulation, fracture: renderFracture, verdict: renderVerdict }[game.section]());
   const auraLevel = Math.min(99,17 + game.pressure*16 + game.trust*2);
 
-  return <main className={`site-shell pressure-${Math.min(game.pressure,5)}`}>
+  return <main
+    className={`site-shell pressure-${Math.min(game.pressure,5)}`}
+    style={{ "--hero-image": `url("${heroImage}")` } as CSSProperties}
+  >
     <RustField pressure={game.pressure} /><div className="scanlines" aria-hidden="true" />
     <header className="global-bar"><div className="order-mark" aria-label={fr ? "Emblème de l'Ordre" : "Order emblem"}><span>O</span></div><div className="global-id"><strong>{c.eyebrow}</strong><span>SESSION 27.08 // {fr ? "CHIFFREMENT ACTIF" : "ENCRYPTION ACTIVE"}</span></div><div className="global-tools"><button onClick={toggleSound} className={`icon-control ${sound ? "on" : ""}`} title={fr ? "Ambiance sonore" : "Sound ambience"} aria-label={fr ? "Activer ou couper l'ambiance sonore" : "Toggle sound ambience"}>{sound ? "◉" : "○"}</button><button onClick={reset} className="icon-control" title={fr ? "Réinitialiser la lecture" : "Reset experience"} aria-label={fr ? "Réinitialiser la lecture" : "Reset experience"}>↺</button><button onClick={() => setLang(lang === "fr" ? "en" : "fr")} className="text-control">{fr ? "EN" : "FR"}</button><span className="live-dot">{fr ? "EN LIGNE" : "ONLINE"}</span></div></header>
     {game.phase === "cover" && <section className="cover-panel" aria-labelledby="protocol-title"><div className="cover-index">ORD//2708</div><p className="kicker">{c.subtitle}</p><h1 id="protocol-title">{c.title}</h1><div className="cover-rule"><span /></div><dl className="protocol-facts"><div><dt>{c.subject}</dt><dd>{c.subjectValue}</dd></div><div><dt>{c.status}</dt><dd className="rust-text">{c.statusValue}</dd></div><div><dt>{c.purpose}</dt><dd>{c.purposeValue}</dd></div></dl><p className="protocol-warning"><span>!</span>{c.warning}</p><button className="primary-action" onClick={openQuestion}><span>{c.enter}</span><b>→</b></button><p className="cover-footer">{c.footer}</p></section>}
-    {game.phase === "question" && <section className="interrogation-panel" aria-live="polite"><div className="portrait-placeholder"><img className="hero-art" src="/artyom-hero.png" alt={fr ? "Artyom Kovaks, Traqueur de l'Ordre, entouré d'une aura turquoise et de métal rouillé" : "Artyom Kovaks, Order Tracker, surrounded by turquoise aura and rusted metal"}/><div className="aura-ring"/><span>A.K2708 // SIGNAL STABLE</span></div><div className="interrogation-copy"><p className="system-line">SYS // {c.line1}</p><p className="speaker">A.K2708</p><p className="quiet-line">{c.line2}</p><h2>{c.question}</h2><div className="choice-stack">{c.choices.map((choice,index) => <button key={choice} onClick={() => chooseIntro(index)}><span>0{index+1}</span>{choice}</button>)}</div></div></section>}
+    {game.phase === "question" && <section className="interrogation-panel" aria-live="polite"><div className="portrait-placeholder"><img className="hero-art" src={heroImage} alt={fr ? "Artyom Kovaks, Traqueur de l'Ordre, entouré d'une aura turquoise et de métal rouillé" : "Artyom Kovaks, Order Tracker, surrounded by turquoise aura and rusted metal"}/><div className="aura-ring"/><span>A.K2708 // SIGNAL STABLE</span></div><div className="interrogation-copy"><p className="system-line">SYS // {c.line1}</p><p className="speaker">A.K2708</p><p className="quiet-line">{c.line2}</p><h2>{c.question}</h2><div className="choice-stack">{c.choices.map((choice,index) => <button key={choice} onClick={() => chooseIntro(index)}><span>0{index+1}</span>{choice}</button>)}</div></div></section>}
     {game.phase === "interface" && <section className="assessment-shell"><aside className="side-rail"><p className="rail-label">{fr ? "DOSSIER ACTIF" : "ACTIVE FILE"}</p><h2>{game.nameStyle === "artyom" ? "ARTYOM" : "A.K2708"}</h2><p>{game.nameStyle === "artyom" ? "A.K2708 // IDENTIFIANT SECONDAIRE" : "ARTYOM KOVAKS"}</p><nav aria-label={fr ? "Sections du dossier" : "File sections"}>{sectionOrder.map((section,index) => <button key={section} onClick={() => go(section)} disabled={index+1 > game.maxUnlocked} className={game.section === section ? "active" : ""}><span>0{index+1}</span>{navLabels[lang][index]}{index+1 > game.maxUnlocked && <i>×</i>}</button>)}</nav><div className="rail-status"><i/><span>{fr ? "AURA DÉTECTÉE" : "AURA DETECTED"}</span><b>{auraLevel}%</b></div>{hesitated && <p className="hesitation-note">{fr ? "Il a remarqué votre première hésitation." : "He noticed your first hesitation."}</p>}</aside><div className="file-view">{renderSection()}</div></section>}
     {game.phase === "ending" && game.ending && <section className={`ending-screen ending-${game.ending}`}><div className="ending-code">FIN // {String(Object.keys(endings[lang]).indexOf(game.ending)+1).padStart(2,"0")}</div><p className="kicker">PROTOCOLE TERMINÉ</p><h1>{endings[lang][game.ending][0]}</h1><h2>{endings[lang][game.ending][1]}</h2><p>{endings[lang][game.ending][2]}</p><blockquote>{endings[lang][game.ending][3]}</blockquote><div className="ending-actions"><button onClick={() => patchGame({ phase:"interface", section:"neutral", ending:null })}>{fr ? "REVENIR À LA PIÈCE" : "RETURN TO THE ROOM"}</button><button onClick={reset}>{fr ? "RECOMMENCER" : "BEGIN AGAIN"}</button></div></section>}
   </main>;
